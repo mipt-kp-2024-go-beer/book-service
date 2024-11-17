@@ -22,6 +22,10 @@ func (s *AppStockService) GetStock(ctx context.Context, bookID string) (*Stock, 
 	return stock, nil
 }
 
+func (s *AppStockService) SaveStock(ctx context.Context, stock Stock) error {
+	return s.store.SaveStock(ctx, stock)
+}
+
 func (s *AppStockService) ChangeStock(ctx context.Context, bookID string, delta int) error {
 	// Fetch the current stock record from the store
 	stock, err := s.store.LoadStock(ctx, bookID)
