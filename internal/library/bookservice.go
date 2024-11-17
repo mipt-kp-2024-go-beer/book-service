@@ -22,6 +22,15 @@ func (s *AppBookService) GetBooks(ctx context.Context, criteria string) ([]Book,
 	return books, nil
 }
 
+func (s *AppBookService) CreateBook(ctx context.Context, book Book) (string, error) {
+	// Save book in the store (database)
+	id, err := s.store.SaveBook(ctx, book)
+	if err != nil {
+		return "", fmt.Errorf("could not create book: %w", err)
+	}
+	return id, nil
+}
+
 func (s *AppBookService) GetBookByID(ctx context.Context, id string) (*Book, error) {
 	// Fetch a single book by ID
 	book, err := s.store.LoadBookByID(ctx, id)

@@ -33,6 +33,16 @@ func (s *MemoryBookStore) LoadBooks(ctx context.Context, criteria string) ([]lib
 	return result, nil
 }
 
+func (s *MemoryBookStore) LoadBookByID(ctx context.Context, id string) (*library.Book, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	book, exists := s.books[id]
+	if !exists {
+		return nil, fmt.Errorf("book with id %s not found", id)
+	}
+	return &book, nil
+}
 func (s *MemoryBookStore) SaveBook(ctx context.Context, book library.Book) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
