@@ -9,20 +9,20 @@ import (
 )
 
 // InMemoryStockStore is an in-memory implementation of the StockStore interface
-type InMemoryStockStore struct {
+type MemoryStockStore struct {
 	mu     sync.RWMutex
 	stocks map[string]library.Stock // Maps book ID to stock info
 }
 
 // NewInMemoryStockStore creates a new instance of InMemoryStockStore
-func NewInMemoryStockStore() *InMemoryStockStore {
-	return &InMemoryStockStore{
+func NewMemoryStockStore() *MemoryStockStore {
+	return &MemoryStockStore{
 		stocks: make(map[string]library.Stock),
 	}
 }
 
 // LoadStock retrieves the stock information for a specific book from the in-memory store
-func (s *InMemoryStockStore) LoadStock(ctx context.Context, bookID string) (*library.Stock, error) {
+func (s *MemoryStockStore) LoadStock(ctx context.Context, bookID string) (*library.Stock, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -34,7 +34,7 @@ func (s *InMemoryStockStore) LoadStock(ctx context.Context, bookID string) (*lib
 }
 
 // SaveStock creates a new stock record for a specific book in the in-memory store
-func (s *InMemoryStockStore) SaveStock(ctx context.Context, stock library.Stock) error {
+func (s *MemoryStockStore) SaveStock(ctx context.Context, stock library.Stock) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -47,7 +47,7 @@ func (s *InMemoryStockStore) SaveStock(ctx context.Context, stock library.Stock)
 }
 
 // UpdateStock adjusts the stock record for a specific book by a given delta
-func (s *InMemoryStockStore) UpdateStock(ctx context.Context, bookID string, delta int) error {
+func (s *MemoryStockStore) UpdateStock(ctx context.Context, bookID string, delta int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

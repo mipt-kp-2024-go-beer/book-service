@@ -13,6 +13,7 @@ type Stock struct {
 // StockService defines the interface for interacting with stock (business logic)
 type StockService interface {
 	GetStock(ctx context.Context, bookID string) (*Stock, error)
+	SaveStock(ctx context.Context, stock Stock) error
 	ChangeStock(ctx context.Context, bookID string, delta int) error
 }
 
