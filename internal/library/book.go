@@ -4,10 +4,10 @@ import "context"
 
 // Book structure represents book entity
 type Book struct {
-	ID          string
-	Title       string
-	Author      string
-	Description string
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Author      string `json:"author"`
+	Description string `json:"description"`
 }
 
 // BookService defines the interface for interacting with books (business logic)
