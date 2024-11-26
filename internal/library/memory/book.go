@@ -81,8 +81,11 @@ func (s *MemoryBookStore) DeleteBook(ctx context.Context, id string) error {
 
 // Simple search in db
 func strContains(str, substr string) bool {
-	// Bet there is no correct results for empty request
-	if str == "" || substr == "" {
+	if substr == "" {
+		return true
+	}
+
+	if str == "" {
 		return false
 	}
 
