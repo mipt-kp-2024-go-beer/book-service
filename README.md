@@ -57,7 +57,7 @@ usr@usr: curl 127.0.0.1:8080/api/v1/books
 **Example with `criteria`**
 
 ```bash
-usr@usr: curl 127.0.0.1:8080/api/v1/books
+usr@usr: curl 127.0.0.1:8080/api/v1/books?criteria=Alan%20Donovan
 ```
 
 **Response**:
@@ -87,7 +87,7 @@ Create a new book.
 **Example**
 
 ```bash
-usr@usr: curl 127.0.0.1:8080/api/v1/books \
+usr@usr: curl 127.0.0.1:8080/api/v1/books/new \
 > -H "Content-Type: application/json" \
 > -d '{"id": "1", "title": "Go Programming Language", "author": "Alan Donovan", "description": "Good one"}'
 ```
@@ -97,14 +97,14 @@ usr@usr: curl 127.0.0.1:8080/api/v1/books \
 - New book's ID
 - Error `Failed to create book...` otherwise
 
-### 4. PUT /api/v1/books/{id}
+### 4. POST /api/v1/books/{id}
 
 Update an existing book by its ID.
 
 **Example**
 
 ```bash
-usr@usr: curl -X PUT 127.0.0.1:8080/api/v1/books/1 \
+usr@usr: curl -X POST 127.0.0.1:8080/api/v1/books/1 \
 > -H "Content-Type: application/json" \
 > -d '{"id": "1", "title": "Go Programming Language", "author": "Alan Donovan, Brian Kernighan", "description": "Bad one"}'
 ```
