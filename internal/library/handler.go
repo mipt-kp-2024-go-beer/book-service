@@ -25,8 +25,8 @@ func (h *Handler) Register() {
 	h.router.Group(func(r chi.Router) {
 		r.Get("/api/v1/books", h.getBooks)
 		r.Get("/api/v1/books/{id}", h.getBookByID)
-		r.Post("/api/v1/books", h.createBook)
-		r.Put("/api/v1/books/{id}", h.updateBook)
+		r.Post("/api/v1/books/new", h.createBook)
+		r.Post("/api/v1/books/{id}", h.updateBook)
 		r.Delete("/api/v1/books/{id}", h.deleteBook)
 	})
 }
