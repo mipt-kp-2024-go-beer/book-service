@@ -133,7 +133,6 @@ func TestHandler_createBook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	req.Header.Add("Authorization", "No matter")
 
 	// Create ResponseRecorder for testing
