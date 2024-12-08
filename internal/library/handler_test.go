@@ -17,8 +17,10 @@ func TestHandler_getBooks(t *testing.T) {
 	service := mock.NewMockService()
 	router := chi.NewRouter()
 
+	usr := mock.NewMockUserServiceClient()
+
 	// Handler creation
-	h := library.NewHandler(router, service)
+	h := library.NewHandler(router, service, usr)
 	h.Register()
 
 	// Create GET request to get books list
@@ -71,8 +73,10 @@ func TestHandler_getBookByID(t *testing.T) {
 	service := mock.NewMockService()
 	router := chi.NewRouter()
 
+	usr := mock.NewMockUserServiceClient()
+
 	// Handler creation
-	h := library.NewHandler(router, service)
+	h := library.NewHandler(router, service, usr)
 	h.Register()
 
 	// Create GET request to get book with ID 1
@@ -117,16 +121,20 @@ func TestHandler_createBook(t *testing.T) {
 	service := mock.NewMockService()
 	router := chi.NewRouter()
 
+	usr := mock.NewMockUserServiceClient()
+
 	// Handler creation
-	h := library.NewHandler(router, service)
+	h := library.NewHandler(router, service, usr)
 	h.Register()
 
 	// Create POST request to create new book
 	newBook := `{"title": "New Book", "author": "New Author", "description": "New Description"}`
-	req, err := http.NewRequest(http.MethodPost, "/api/v1/books", strings.NewReader(newBook))
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/books/new", strings.NewReader(newBook))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	req.Header.Add("Authorization", "No matter")
 
 	// Create ResponseRecorder for testing
 	rr := httptest.NewRecorder()
@@ -159,16 +167,19 @@ func TestHandler_updateBook(t *testing.T) {
 	service := mock.NewMockService()
 	router := chi.NewRouter()
 
+	usr := mock.NewMockUserServiceClient()
+
 	// Handler creation
-	h := library.NewHandler(router, service)
+	h := library.NewHandler(router, service, usr)
 	h.Register()
 
 	// Create PUT request to update book
 	updatedBook := `{"title": "Updated Book", "author": "Updated Author", "description": "Updated Description"}`
-	req, err := http.NewRequest(http.MethodPut, "/api/v1/books/1", strings.NewReader(updatedBook))
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/books/1", strings.NewReader(updatedBook))
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Add("Authorization", "No matter what")
 
 	// Create ResponseRecorder for testing
 	rr := httptest.NewRecorder()
@@ -186,8 +197,10 @@ func TestHandler_deleteBook(t *testing.T) {
 	service := mock.NewMockService()
 	router := chi.NewRouter()
 
+	usr := mock.NewMockUserServiceClient()
+
 	// Handler creation
-	h := library.NewHandler(router, service)
+	h := library.NewHandler(router, service, usr)
 	h.Register()
 
 	// Create DELETE request to delete book
@@ -195,6 +208,7 @@ func TestHandler_deleteBook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Add("Authorization", "Now matter what")
 
 	// Create ResponseRecorder for testing
 	rr := httptest.NewRecorder()
