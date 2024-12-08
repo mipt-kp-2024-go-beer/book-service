@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	Host string   `yaml:"host" json:"host" env:"SERVER_HOST"`
-	Port string   `yaml:"port" json:"port" env:"SERVER_PORT"`
-	DB   Database `yaml:"database" json:"database"`
+	Host             string   `yaml:"host" json:"host" env:"SERVER_HOST"`
+	Port             string   `yaml:"port" json:"port" env:"SERVER_PORT"`
+	UserHost         string   `yaml:"user_host" json:"user_host" env:"USER_HOST"`
+	UserInternalPort string   `yaml:"user_internal_port" json:"user_internal_port" env:"USER_INTERNAL_PORT"`
+	DB               Database `yaml:"database" json:"database"`
 }
 
 type Database struct {

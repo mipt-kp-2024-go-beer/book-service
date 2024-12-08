@@ -11,12 +11,14 @@ import (
 type Handler struct {
 	router  *chi.Mux
 	service BookService
+	userSVC UserService
 }
 
-func NewHandler(router *chi.Mux, service BookService) *Handler {
+func NewHandler(router *chi.Mux, service BookService, userSVC UserService) *Handler {
 	return &Handler{
 		router:  router,
 		service: service,
+		userSVC: userSVC,
 	}
 }
 
@@ -77,6 +79,25 @@ func (h *Handler) getBookByID(w http.ResponseWriter, r *http.Request) {
 
 // Handles POST requests to create a new book
 func (h *Handler) createBook(w http.ResponseWriter, r *http.Request) {
+	// First, let's get authorization token
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Request to 'user' microservice to get permissions
+	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if !manage {
+		http.Error(w, "Insufficient permissions", http.StatusForbidden)
+		return
+	}
+
 	var book Book
 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
@@ -102,6 +123,25 @@ func (h *Handler) createBook(w http.ResponseWriter, r *http.Request) {
 
 // Handles PUT request to update a book by ID
 func (h *Handler) updateBook(w http.ResponseWriter, r *http.Request) {
+	// First, let's get authorization token
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Request to 'user' microservice to get permissions
+	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if !manage {
+		http.Error(w, "Insufficient permissions", http.StatusForbidden)
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 	var book Book
 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
@@ -122,6 +162,25 @@ func (h *Handler) updateBook(w http.ResponseWriter, r *http.Request) {
 
 // Handles DELETE request to delete a book by ID
 func (h *Handler) deleteBook(w http.ResponseWriter, r *http.Request) {
+	// First, let's get authorization token
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Request to 'user' microservice to get permissions
+	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if !manage {
+		http.Error(w, "Insufficient permissions", http.StatusForbidden)
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 	ctx := r.Context()
 

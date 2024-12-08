@@ -10,6 +10,11 @@ type Book struct {
 	Description string `json:"description"`
 }
 
+// Intercommunication with 'user' microservice (permission checks)
+type UserService interface {
+	CheckPermissions(token string, mask uint) (bool, error)
+}
+
 // BookService defines the interface for interacting with books (business logic)
 type BookService interface {
 	GetBooks(ctx context.Context, criteria string) ([]Book, error)

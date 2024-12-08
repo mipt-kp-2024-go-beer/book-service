@@ -47,8 +47,11 @@ func (a *App) Setup(ctx context.Context) error {
 	// Initialize service
 	service := library.NewBookService(store)
 
+	// Create User
+	user := library.NewUserServiceClient(a.config.UserHost + ":" + a.config.UserInternalPort)
+
 	// Create Handler
-	handler := library.NewHandler(a.router, service)
+	handler := library.NewHandler(a.router, service, user)
 	handler.Register()
 
 	return nil
