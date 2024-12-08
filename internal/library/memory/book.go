@@ -2,10 +2,10 @@ package memory
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/mipt-kp-2024-go-beer/book-service/internal/library"
+	"github.com/mipt-kp-2024-go-beer/book-service/internal/oops"
 )
 
 type MemoryBookStore struct {
@@ -39,7 +39,7 @@ func (s *MemoryBookStore) LoadBookByID(ctx context.Context, id string) (*library
 
 	book, exists := s.books[id]
 	if !exists {
-		return nil, fmt.Errorf("book with id %s not found", id)
+		return nil, oops.ErrUnexistedBook
 	}
 	return &book, nil
 }
@@ -48,7 +48,7 @@ func (s *MemoryBookStore) SaveBook(ctx context.Context, book library.Book) (stri
 	defer s.mu.Unlock()
 
 	if _, exists := s.books[book.ID]; exists {
-		return "", fmt.Errorf("book with id %s already exists", book.ID)
+		return "", oops.ErrDuplicateID
 	}
 
 	s.books[book.ID] = book
@@ -60,7 +60,7 @@ func (s *MemoryBookStore) UpdateBook(ctx context.Context, id string, book librar
 	defer s.mu.Unlock()
 
 	if _, exists := s.books[id]; !exists {
-		return fmt.Errorf("book with id %s not found", id)
+		return oops.ErrUnexistedBook
 	}
 
 	s.books[id] = book
@@ -72,7 +72,7 @@ func (s *MemoryBookStore) DeleteBook(ctx context.Context, id string) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.books[id]; !exists {
-		return fmt.Errorf("book with id %s not found", id)
+		return oops.ErrUnexistedBook
 	}
 
 	delete(s.books, id)

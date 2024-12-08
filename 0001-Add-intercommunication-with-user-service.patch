@@ -1,0 +1,394 @@
+From 65076a4d7316458ff1b8b9e92ee69cbfbc84b85a Mon Sep 17 00:00:00 2001
+From: dfrolov <dfrolov@aq.ru>
+Date: Sun, 8 Dec 2024 18:09:44 +0300
+Subject: [PATCH] Add intercommunication with 'user' service
+
+---
+ configs/config.yml               |  8 ++-
+ internal/app/app.go              |  5 +-
+ internal/app/config.go           |  8 +--
+ internal/library/book.go         |  5 ++
+ internal/library/handler.go      | 61 +++++++++++++++++++++-
+ internal/library/handler_test.go | 28 +++++++---
+ internal/library/mock/user.go    | 11 ++++
+ internal/library/user.go         | 90 ++++++++++++++++++++++++++++++++
+ 8 files changed, 202 insertions(+), 14 deletions(-)
+ create mode 100644 internal/library/mock/user.go
+ create mode 100644 internal/library/user.go
+
+diff --git a/configs/config.yml b/configs/config.yml
+index bd28e06..10fd53b 100644
+--- a/configs/config.yml
++++ b/configs/config.yml
+@@ -1,4 +1,8 @@
+-host: "localhost"
+-port: "8080"
++host: "127.0.0.1"
++port: "8082"
++
++user_host: "127.0.0.1"
++user_internal_port: "8081" # Port for internal APIs
++
+ database: #TODO
+   dsn: ""
+\ No newline at end of file
+diff --git a/internal/app/app.go b/internal/app/app.go
+index dafe998..c604ad4 100644
+--- a/internal/app/app.go
++++ b/internal/app/app.go
+@@ -47,8 +47,11 @@ func (a *App) Setup(ctx context.Context) error {
+ 	// Initialize service
+ 	service := library.NewBookService(store)
+ 
++	// Create User
++	user := library.NewUserServiceClient(a.config.UserHost + ":" + a.config.UserInternalPort)
++
+ 	// Create Handler
+-	handler := library.NewHandler(a.router, service)
++	handler := library.NewHandler(a.router, service, user)
+ 	handler.Register()
+ 
+ 	return nil
+diff --git a/internal/app/config.go b/internal/app/config.go
+index 038c826..68a610f 100644
+--- a/internal/app/config.go
++++ b/internal/app/config.go
+@@ -7,9 +7,11 @@ import (
+ )
+ 
+ type Config struct {
+-	Host string   `yaml:"host" json:"host" env:"SERVER_HOST"`
+-	Port string   `yaml:"port" json:"port" env:"SERVER_PORT"`
+-	DB   Database `yaml:"database" json:"database"`
++	Host             string   `yaml:"host" json:"host" env:"SERVER_HOST"`
++	Port             string   `yaml:"port" json:"port" env:"SERVER_PORT"`
++	UserHost         string   `yaml:"user_host" json:"user_host" env:"USER_HOST"`
++	UserInternalPort string   `yaml:"user_internal_port" json:"user_internal_port" env:"USER_INTERNAL_PORT"`
++	DB               Database `yaml:"database" json:"database"`
+ }
+ 
+ type Database struct {
+diff --git a/internal/library/book.go b/internal/library/book.go
+index 0faf0b2..62d69e5 100644
+--- a/internal/library/book.go
++++ b/internal/library/book.go
+@@ -10,6 +10,11 @@ type Book struct {
+ 	Description string `json:"description"`
+ }
+ 
++// Intercommunication with 'user' microservice (permission checks)
++type UserService interface {
++	CheckPermissions(token string, mask uint) (bool, error)
++}
++
+ // BookService defines the interface for interacting with books (business logic)
+ type BookService interface {
+ 	GetBooks(ctx context.Context, criteria string) ([]Book, error)
+diff --git a/internal/library/handler.go b/internal/library/handler.go
+index d06b8e1..b55f5c4 100644
+--- a/internal/library/handler.go
++++ b/internal/library/handler.go
+@@ -11,12 +11,14 @@ import (
+ type Handler struct {
+ 	router  *chi.Mux
+ 	service BookService
++	userSVC UserService
+ }
+ 
+-func NewHandler(router *chi.Mux, service BookService) *Handler {
++func NewHandler(router *chi.Mux, service BookService, userSVC UserService) *Handler {
+ 	return &Handler{
+ 		router:  router,
+ 		service: service,
++		userSVC: userSVC,
+ 	}
+ }
+ 
+@@ -77,6 +79,25 @@ func (h *Handler) getBookByID(w http.ResponseWriter, r *http.Request) {
+ 
+ // Handles POST requests to create a new book
+ func (h *Handler) createBook(w http.ResponseWriter, r *http.Request) {
++	// First, let's get authorization token
++	token := r.Header.Get("Authorization")
++	if token == "" {
++		http.Error(w, "Missing token", http.StatusUnauthorized)
++		return
++	}
++
++	// Request to 'user' microservice to get permissions
++	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
++	if err != nil {
++		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
++		return
++	}
++
++	if !manage {
++		http.Error(w, "Insufficient permissions", http.StatusForbidden)
++		return
++	}
++
+ 	var book Book
+ 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
+ 		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+@@ -102,6 +123,25 @@ func (h *Handler) createBook(w http.ResponseWriter, r *http.Request) {
+ 
+ // Handles PUT request to update a book by ID
+ func (h *Handler) updateBook(w http.ResponseWriter, r *http.Request) {
++	// First, let's get authorization token
++	token := r.Header.Get("Authorization")
++	if token == "" {
++		http.Error(w, "Missing token", http.StatusUnauthorized)
++		return
++	}
++
++	// Request to 'user' microservice to get permissions
++	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
++	if err != nil {
++		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
++		return
++	}
++
++	if !manage {
++		http.Error(w, "Insufficient permissions", http.StatusForbidden)
++		return
++	}
++
+ 	id := chi.URLParam(r, "id")
+ 	var book Book
+ 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
+@@ -122,6 +162,25 @@ func (h *Handler) updateBook(w http.ResponseWriter, r *http.Request) {
+ 
+ // Handles DELETE request to delete a book by ID
+ func (h *Handler) deleteBook(w http.ResponseWriter, r *http.Request) {
++	// First, let's get authorization token
++	token := r.Header.Get("Authorization")
++	if token == "" {
++		http.Error(w, "Missing token", http.StatusUnauthorized)
++		return
++	}
++
++	// Request to 'user' microservice to get permissions
++	manage, err := h.userSVC.CheckPermissions(token, PermManageBooks)
++	if err != nil {
++		http.Error(w, fmt.Sprintf("Error checking permission: %v", err), http.StatusInternalServerError)
++		return
++	}
++
++	if !manage {
++		http.Error(w, "Insufficient permissions", http.StatusForbidden)
++		return
++	}
++
+ 	id := chi.URLParam(r, "id")
+ 	ctx := r.Context()
+ 
+diff --git a/internal/library/handler_test.go b/internal/library/handler_test.go
+index 2dbf6cb..38a5473 100644
+--- a/internal/library/handler_test.go
++++ b/internal/library/handler_test.go
+@@ -17,8 +17,10 @@ func TestHandler_getBooks(t *testing.T) {
+ 	service := mock.NewMockService()
+ 	router := chi.NewRouter()
+ 
++	usr := mock.NewMockUserServiceClient()
++
+ 	// Handler creation
+-	h := library.NewHandler(router, service)
++	h := library.NewHandler(router, service, usr)
+ 	h.Register()
+ 
+ 	// Create GET request to get books list
+@@ -71,8 +73,10 @@ func TestHandler_getBookByID(t *testing.T) {
+ 	service := mock.NewMockService()
+ 	router := chi.NewRouter()
+ 
++	usr := mock.NewMockUserServiceClient()
++
+ 	// Handler creation
+-	h := library.NewHandler(router, service)
++	h := library.NewHandler(router, service, usr)
+ 	h.Register()
+ 
+ 	// Create GET request to get book with ID 1
+@@ -117,17 +121,21 @@ func TestHandler_createBook(t *testing.T) {
+ 	service := mock.NewMockService()
+ 	router := chi.NewRouter()
+ 
++	usr := mock.NewMockUserServiceClient()
++
+ 	// Handler creation
+-	h := library.NewHandler(router, service)
++	h := library.NewHandler(router, service, usr)
+ 	h.Register()
+ 
+ 	// Create POST request to create new book
+ 	newBook := `{"title": "New Book", "author": "New Author", "description": "New Description"}`
+-	req, err := http.NewRequest(http.MethodPost, "/api/v1/books", strings.NewReader(newBook))
++	req, err := http.NewRequest(http.MethodPost, "/api/v1/books/new", strings.NewReader(newBook))
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+ 
++	req.Header.Add("Authorization", "No matter")
++
+ 	// Create ResponseRecorder for testing
+ 	rr := httptest.NewRecorder()
+ 	router.ServeHTTP(rr, req)
+@@ -159,16 +167,19 @@ func TestHandler_updateBook(t *testing.T) {
+ 	service := mock.NewMockService()
+ 	router := chi.NewRouter()
+ 
++	usr := mock.NewMockUserServiceClient()
++
+ 	// Handler creation
+-	h := library.NewHandler(router, service)
++	h := library.NewHandler(router, service, usr)
+ 	h.Register()
+ 
+ 	// Create PUT request to update book
+ 	updatedBook := `{"title": "Updated Book", "author": "Updated Author", "description": "Updated Description"}`
+-	req, err := http.NewRequest(http.MethodPut, "/api/v1/books/1", strings.NewReader(updatedBook))
++	req, err := http.NewRequest(http.MethodPost, "/api/v1/books/1", strings.NewReader(updatedBook))
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
++	req.Header.Add("Authorization", "No matter what")
+ 
+ 	// Create ResponseRecorder for testing
+ 	rr := httptest.NewRecorder()
+@@ -186,8 +197,10 @@ func TestHandler_deleteBook(t *testing.T) {
+ 	service := mock.NewMockService()
+ 	router := chi.NewRouter()
+ 
++	usr := mock.NewMockUserServiceClient()
++
+ 	// Handler creation
+-	h := library.NewHandler(router, service)
++	h := library.NewHandler(router, service, usr)
+ 	h.Register()
+ 
+ 	// Create DELETE request to delete book
+@@ -195,6 +208,7 @@ func TestHandler_deleteBook(t *testing.T) {
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
++	req.Header.Add("Authorization", "Now matter what")
+ 
+ 	// Create ResponseRecorder for testing
+ 	rr := httptest.NewRecorder()
+diff --git a/internal/library/mock/user.go b/internal/library/mock/user.go
+new file mode 100644
+index 0000000..d8a58bb
+--- /dev/null
++++ b/internal/library/mock/user.go
+@@ -0,0 +1,11 @@
++package mock
++
++type MockUserServiceClient struct{}
++
++func NewMockUserServiceClient() *MockUserServiceClient {
++	return &MockUserServiceClient{}
++}
++
++func (client *MockUserServiceClient) CheckPermissions(token string, mask uint) (bool, error) {
++	return true, nil
++}
+diff --git a/internal/library/user.go b/internal/library/user.go
+new file mode 100644
+index 0000000..cc50976
+--- /dev/null
++++ b/internal/library/user.go
+@@ -0,0 +1,90 @@
++package library
++
++import (
++	"bytes"
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"strconv"
++)
++
++type UserServiceClient struct {
++	BaseURL    string
++	HTTPClient *http.Client
++}
++
++func NewUserServiceClient(baseURL string) *UserServiceClient {
++	return &UserServiceClient{
++		BaseURL:    baseURL,
++		HTTPClient: &http.Client{},
++	}
++}
++
++// Check if the token has the required permissions
++func (client *UserServiceClient) CheckPermissions(token string, mask uint) (bool, error) {
++	// Prepare the request body
++	data := struct {
++		Token string `json:"token"`
++	}{Token: token}
++
++	jsonData, err := json.Marshal(data)
++	if err != nil {
++		return false, fmt.Errorf("error marshalling token data: %v", err)
++	}
++
++	// Make the POST request to check permissions
++	resp, err := client.HTTPClient.Post("http://"+client.BaseURL+"/user/permissions", "application/json", bytes.NewReader(jsonData))
++	if err != nil {
++		return false, fmt.Errorf("error sending request to user service: %v", err)
++	}
++	defer resp.Body.Close()
++
++	if resp.StatusCode != http.StatusOK {
++		return false, fmt.Errorf("failed to check permissions, status: %d", resp.StatusCode)
++	}
++
++	// Decode the response
++	var permissionResp struct {
++		Permissions string `json:"permissios"`
++	}
++	if err := json.NewDecoder(resp.Body).Decode(&permissionResp); err != nil {
++		return false, fmt.Errorf("error decoding permissions response: %v", err)
++	}
++
++	// Convert permissions string to an integer
++	// permissions, err := strconv.Atoi(permissionResp.Permissions)
++	permissions, err := strconv.ParseUint(permissionResp.Permissions, 10, 64)
++	if err != nil {
++		return false, fmt.Errorf("error converting permission value: %v", err)
++	}
++
++	// Check if the permission mask includes the required permission
++	return (uint(permissions)&mask != 0), nil
++}
++
++const (
++	// PermManageBooks allows the user to add, edit and delete books from the library
++	PermManageBooks uint = 1 << 0
++	// PermQueryTotalStock allows the user to get the total stored book count
++	PermQueryTotalStock uint = 1 << 1
++	// PermChangeTotalStock allows the user to register updates to the total stored book count.
++	// Requires PermGetTotalStock as a prerequisite.
++	PermChangeTotalStock uint = 1 << 2
++	// PermQueryUsers allows the user to get information about other users, including their permissions.
++	// Not required to get information about oneself, other rules apply.
++	PermQueryUsers uint = 1 << 3
++	// PermManageUsers allows the user to add, edit and delete other users.
++	// Not required to manage oneself, other rules apply.
++	// Requires PermQueryUsers as a prerequisite.
++	PermManageUsers uint = 1 << 4
++	// PermGrantPermissions allows the user to grant permissions to other users.
++	// Only a subset of own permissions may be granted.
++	// Requires PermQueryUsers as a prerequisite.
++	PermGrantPermissions uint = 1 << 5
++	// PermLoanBooks allows the user to register book takeouts and returns.
++	PermLoanBooks uint = 1 << 6
++	// PermQueryAvailableStock allows the user to get the number of available (not lent out) copies of a book.
++	PermQueryAvailableStock uint = 1 << 7
++	// PermQueryReservations allows the user to get information related to book reservations.
++	PermQueryReservations uint = 1 << 8
++)
+-- 
+2.45.2
+

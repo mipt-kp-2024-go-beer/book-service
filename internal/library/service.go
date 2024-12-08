@@ -2,7 +2,10 @@ package library
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/pkg/errors"
+
+	"github.com/mipt-kp-2024-go-beer/book-service/internal/oops"
 )
 
 type AppBookService struct {
@@ -17,7 +20,7 @@ func (s *AppBookService) GetBooks(ctx context.Context, criteria string) ([]Book,
 	// Fetch books from store (database)
 	books, err := s.store.LoadBooks(ctx, criteria)
 	if err != nil {
-		return nil, fmt.Errorf("could not load books: %w", err)
+		return nil, errors.Wrap(err, oops.ErrLoadBooks.Error())
 	}
 	return books, nil
 }
@@ -26,7 +29,7 @@ func (s *AppBookService) CreateBook(ctx context.Context, book Book) (string, err
 	// Save book in the store (database)
 	id, err := s.store.SaveBook(ctx, book)
 	if err != nil {
-		return "", fmt.Errorf("could not create book: %w", err)
+		return "", errors.Wrap(err, oops.ErrCreateBook.Error())
 	}
 	return id, nil
 }
@@ -35,7 +38,7 @@ func (s *AppBookService) GetBookByID(ctx context.Context, id string) (*Book, err
 	// Fetch a single book by ID
 	book, err := s.store.LoadBookByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("could not load book with id %s: %w", id, err)
+		return nil, errors.Wrap(err, oops.ErrLoadBooks.Error())
 	}
 	return book, nil
 }
@@ -44,7 +47,7 @@ func (s *AppBookService) UpdateBook(ctx context.Context, id string, book Book) e
 	// Update the book in the store
 	err := s.store.UpdateBook(ctx, id, book)
 	if err != nil {
-		return fmt.Errorf("could not update book with id %s: %w", id, err)
+		return errors.Wrap(err, oops.ErrUpdateBook.Error())
 	}
 	return nil
 }
@@ -53,7 +56,7 @@ func (s *AppBookService) DeleteBook(ctx context.Context, id string) error {
 	// Delete book from the store
 	err := s.store.DeleteBook(ctx, id)
 	if err != nil {
-		return fmt.Errorf("could not delete book with id %s: %w", id, err)
+		return errors.Wrap(err, oops.ErrDeleteBook.Error())
 	}
 	return nil
 }
