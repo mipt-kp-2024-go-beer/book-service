@@ -3,9 +3,8 @@ package library
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	"github.com/mipt-kp-2024-go-beer/book-service/internal/oops"
+	"github.com/pkg/errors"
 )
 
 type AppBookService struct {
