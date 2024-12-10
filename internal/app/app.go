@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/mipt-kp-2024-go-beer/book-service/internal/library"
-	"github.com/mipt-kp-2024-go-beer/book-service/internal/library/memory" // Или импортируйте нужный storage (например, sqlite)
+	"github.com/mipt-kp-2024-go-beer/book-service/internal/library/sqlite"
+	"github.com/mipt-kp-2024-go-beer/book-service/internal/oops"
+	"github.com/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/sync/errgroup"
@@ -42,7 +44,10 @@ func New(ctx context.Context, config *Config) (*App, error) {
 // Initialize db, service and setup Handler with HTTP requests
 func (a *App) Setup(ctx context.Context) error {
 	// Initialize db
-	store := memory.NewMemoryBookStore()
+	store, err := sqlite.NewSQLiteBookStore("db/books.db")
+	if err != nil {
+		return errors.Wrap(err, oops.ErrDBSetup.Error())
+	}
 
 	// Initialize service
 	service := library.NewBookService(store)

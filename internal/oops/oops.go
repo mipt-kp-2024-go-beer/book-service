@@ -14,3 +14,7 @@ var ErrDeleteBook = errors.New("Could not delete book")
 
 // Real DB specific
 var ErrCreatingTable = errors.New("Could not create table")
+var ErrDBSetup = errors.New("Could not setup db")
+
+// OS errors
+var ErrOSMkdir = errors.New("Could not execute MKDir")

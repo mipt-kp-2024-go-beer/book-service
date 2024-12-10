@@ -3,6 +3,10 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"os"
+	"path/filepath"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/mipt-kp-2024-go-beer/book-service/internal/library"
 	"github.com/mipt-kp-2024-go-beer/book-service/internal/oops"
@@ -14,6 +18,12 @@ type SQLiteBookStore struct {
 }
 
 func NewSQLiteBookStore(path string) (*SQLiteBookStore, error) {
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return nil, errors.Wrap(err, oops.ErrOSMkdir.Error())
+	}
+
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
