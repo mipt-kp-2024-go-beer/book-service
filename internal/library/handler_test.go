@@ -54,12 +54,14 @@ func TestHandler_getBooks(t *testing.T) {
 				Title:       "Book One",
 				Author:      "Author One",
 				Description: "Description One",
+				Stock:       "100",
 			},
 			{
 				ID:          "2",
 				Title:       "Book Two",
 				Author:      "Author Two",
 				Description: "Description Two",
+				Stock:       "52",
 			},
 		}
 
@@ -109,6 +111,7 @@ func TestHandler_getBookByID(t *testing.T) {
 			Title:       "Book One",
 			Author:      "Author One",
 			Description: "Description One",
+			Stock:       "100",
 		}
 
 		if diff := cmp.Diff(want, got); diff != "" {

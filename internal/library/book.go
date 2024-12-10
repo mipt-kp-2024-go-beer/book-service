@@ -8,6 +8,7 @@ type Book struct {
 	Title       string `json:"title"`
 	Author      string `json:"author"`
 	Description string `json:"description"`
+	Stock       string `json:"stock"`
 }
 
 // Intercommunication with 'user' microservice (permission checks)

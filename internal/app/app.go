@@ -44,7 +44,7 @@ func New(ctx context.Context, config *Config) (*App, error) {
 // Initialize db, service and setup Handler with HTTP requests
 func (a *App) Setup(ctx context.Context) error {
 	// Initialize db
-	store, err := sqlite.NewSQLiteBookStore("db/books.db")
+	store, err := sqlite.NewSQLiteBookStore(a.config.DB.DSN)
 	if err != nil {
 		return errors.Wrap(err, oops.ErrDBSetup.Error())
 	}

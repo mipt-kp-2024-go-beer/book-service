@@ -20,12 +20,14 @@ func (m *Mock) GetBooks(ctx context.Context, criteria string) ([]library.Book, e
 			Title:       "Book One",
 			Author:      "Author One",
 			Description: "Description One",
+			Stock:       "100",
 		},
 		{
 			ID:          "2",
 			Title:       "Book Two",
 			Author:      "Author Two",
 			Description: "Description Two",
+			Stock:       "52",
 		},
 	}, nil
 }
@@ -38,6 +40,7 @@ func (m *Mock) GetBookByID(ctx context.Context, id string) (*library.Book, error
 			Title:       "Book One",
 			Author:      "Author One",
 			Description: "Description One",
+			Stock:       "100",
 		}, nil
 	}
 	return nil, nil

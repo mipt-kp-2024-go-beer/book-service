@@ -34,7 +34,8 @@ func NewSQLiteBookStore(path string) (*SQLiteBookStore, error) {
 		id TEXT PRIMARY KEY,
 		title TEXT,
 		author TEXT,
-		description TEXT
+		description TEXT,
+		stock TEXT
 	);`
 
 	_, err = db.Exec(create)
@@ -46,7 +47,7 @@ func NewSQLiteBookStore(path string) (*SQLiteBookStore, error) {
 }
 
 func (s *SQLiteBookStore) LoadBooks(ctx context.Context, criteria string) ([]library.Book, error) {
-	query := `SELECT id, title, author, description FROM books WHERE title LIKE ? OR author LIKE ? OR description LIKE ?`
+	query := `SELECT id, title, author, description, stock FROM books WHERE title LIKE ? OR author LIKE ? OR description LIKE ?`
 	rows, err := s.db.QueryContext(ctx, query, "%"+criteria+"%", "%"+criteria+"%", "%"+criteria+"%")
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func (s *SQLiteBookStore) LoadBooks(ctx context.Context, criteria string) ([]lib
 	var books []library.Book
 	for rows.Next() {
 		var book library.Book
-		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Description)
+		err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Description, &book.Stock)
 		if err != nil {
 			return nil, err
 		}
@@ -71,11 +72,11 @@ func (s *SQLiteBookStore) LoadBooks(ctx context.Context, criteria string) ([]lib
 }
 
 func (s *SQLiteBookStore) LoadBookByID(ctx context.Context, id string) (*library.Book, error) {
-	query := `SELECT id, title, author, description FROM books WHERE id = ?`
+	query := `SELECT id, title, author, description, stock FROM books WHERE id = ?`
 	row := s.db.QueryRowContext(ctx, query, id)
 
 	var book library.Book
-	err := row.Scan(&book.ID, &book.Title, &book.Author, &book.Description)
+	err := row.Scan(&book.ID, &book.Title, &book.Author, &book.Description, &book.Stock)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, oops.ErrUnexistedBook
@@ -87,8 +88,8 @@ func (s *SQLiteBookStore) LoadBookByID(ctx context.Context, id string) (*library
 }
 
 func (s *SQLiteBookStore) SaveBook(ctx context.Context, book library.Book) (string, error) {
-	query := `INSERT INTO books (id, title, author, description) VALUES (?, ?, ?, ?)`
-	_, err := s.db.ExecContext(ctx, query, book.ID, book.Title, book.Author, book.Description)
+	query := `INSERT INTO books (id, title, author, description, stock) VALUES (?, ?, ?, ?, ?)`
+	_, err := s.db.ExecContext(ctx, query, book.ID, book.Title, book.Author, book.Description, book.Stock)
 	if err != nil {
 		return "", err
 	}
@@ -97,8 +98,8 @@ func (s *SQLiteBookStore) SaveBook(ctx context.Context, book library.Book) (stri
 }
 
 func (s *SQLiteBookStore) UpdateBook(ctx context.Context, id string, book library.Book) error {
-	query := `UPDATE books SET title = ?, author = ?, description = ? WHERE id = ?`
-	result, err := s.db.ExecContext(ctx, query, book.Title, book.Author, book.Description, id)
+	query := `UPDATE books SET title = ?, author = ?, description = ?, stock = ? WHERE id = ?`
+	result, err := s.db.ExecContext(ctx, query, book.Title, book.Author, book.Description, book.Stock, id)
 	if err != nil {
 		return err
 	}

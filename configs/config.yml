@@ -4,5 +4,5 @@ port: "8082"
 user_host: "127.0.0.1"
 user_internal_port: "8081" # Port for internal APIs
 
-database: #TODO
-  dsn: ""
+database:
+  dsn: "db/books.db"
