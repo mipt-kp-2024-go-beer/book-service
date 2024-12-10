@@ -11,3 +11,6 @@ var ErrLoadBooks = errors.New("Could not load books")
 var ErrCreateBook = errors.New("Could not create book")
 var ErrUpdateBook = errors.New("Could not update book")
 var ErrDeleteBook = errors.New("Could not delete book")
+
+// Real DB specific
+var ErrCreatingTable = errors.New("Could not create table")
